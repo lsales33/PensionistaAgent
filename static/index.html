@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PensionistaAgent — Chat</title>
+  <style>
+    :root {
+      --bg: #0a0e17;
+      --bg2: #111827;
+      --bg3: #1a2332;
+      --accent: #06b6d4;
+      --accent2: #8b5cf6;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --text: #f1f5f9;
+      --text2: #94a3b8;
+      --text3: #64748b;
+      --border: #1e293b;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 280px;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .sidebar-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-header h1 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .sidebar-header p {
+      font-size: 0.72rem;
+      color: var(--text3);
+      margin-top: 4px;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .status-dry { background: rgba(245,158,11,0.15); color: var(--amber); }
+    .status-live { background: rgba(16,185,129,0.15); color: var(--green); }
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    .status-dry .status-dot { background: var(--amber); }
+    .status-live .status-dot { background: var(--green); }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .sidebar-section {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-section h3 {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text3);
+      margin-bottom: 10px;
+    }
+
+    .skill-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .skill-card:hover { border-color: var(--accent); }
+    .skill-card.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 12px rgba(6,182,212,0.15);
+    }
+    .skill-card .skill-name {
+      font-size: 0.82rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .skill-card .skill-domain {
+      font-size: 0.68rem;
+      color: var(--text3);
+      margin-top: 2px;
+    }
+    .skill-card .skill-keywords {
+      font-size: 0.62rem;
+      color: var(--text3);
+      margin-top: 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .skill-card .kw-tag {
+      background: rgba(255,255,255,0.05);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    .select-wrapper {
+      position: relative;
+      margin-top: 8px;
+    }
+    .select-wrapper select {
+      width: 100%;
+      background: var(--bg3);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      appearance: none;
+    }
+    .select-wrapper::after {
+      content: '▾';
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text3);
+      pointer-events: none;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.68rem;
+      color: var(--text3);
+      text-align: center;
+    }
+
+    /* MAIN CHAT */
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .chat-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(17,24,39,0.6);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .chat-header h2 {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .chat-header .chip {
+      font-size: 0.65rem;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: rgba(6,182,212,0.12);
+      color: var(--accent);
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      scroll-behavior: smooth;
+    }
+
+    .msg {
+      display: flex;
+      gap: 12px;
+      max-width: 85%;
+      animation: fadeUp 0.3s ease;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+    .msg.assistant { align-self: flex-start; }
+
+    .msg-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .msg.user .msg-avatar { background: rgba(139,92,246,0.2); }
+    .msg.assistant .msg-avatar { background: rgba(6,182,212,0.2); }
+
+    .msg-bubble {
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-size: 0.88rem;
+      line-height: 1.65;
+    }
+    .msg.user .msg-bubble {
+      background: var(--accent2);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+    .msg.assistant .msg-bubble {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+    .msg-meta {
+      font-size: 0.65rem;
+      color: var(--text3);
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .msg-meta .skill-tag {
+      background: rgba(6,182,212,0.1);
+      color: var(--accent);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .msg-meta .dry-tag {
+      background: rgba(245,158,11,0.1);
+      color: var(--amber);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    /* Markdown rendering */
+    .msg-bubble h1, .msg-bubble h2, .msg-bubble h3 {
+      margin-top: 12px;
+      margin-bottom: 4px;
+    }
+    .msg-bubble h1 { font-size: 1.1rem; }
+    .msg-bubble h2 { font-size: 1rem; color: var(--accent); }
+    .msg-bubble h3 { font-size: 0.92rem; }
+    .msg-bubble p { margin: 6px 0; }
+    .msg-bubble ul, .msg-bubble ol { padding-left: 1.2rem; margin: 6px 0; }
+    .msg-bubble li { margin: 3px 0; }
+    .msg-bubble strong { color: var(--accent); }
+    .msg-bubble code {
+      background: rgba(255,255,255,0.06);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 0.82rem;
+    }
+    .msg-bubble pre {
+      background: rgba(0,0,0,0.3);
+      padding: 10px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 8px 0;
+      font-size: 0.8rem;
+    }
+    .msg-bubble blockquote {
+      border-left: 3px solid var(--accent2);
+      padding: 4px 12px;
+      margin: 8px 0;
+      background: rgba(139,92,246,0.05);
+      border-radius: 0 6px 6px 0;
+      font-style: italic;
+      color: var(--text2);
+    }
+    .msg-bubble table {
+      border-collapse: collapse;
+      margin: 8px 0;
+      font-size: 0.82rem;
+      width: 100%;
+    }
+    .msg-bubble th, .msg-bubble td {
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      text-align: left;
+    }
+    .msg-bubble th { background: rgba(6,182,212,0.08); }
+
+    /* Typing indicator */
+    .typing {
+      display: none;
+      align-self: flex-start;
+      gap: 12px;
+      max-width: 85%;
+    }
+    .typing.visible { display: flex; }
+    .typing-dots {
+      display: flex;
+      gap: 4px;
+      padding: 12px 20px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      border-bottom-left-radius: 4px;
+    }
+    .typing-dots span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text3);
+      animation: bounce 1.4s infinite;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-6px); }
+    }
+
+    /* INPUT */
+    .input-area {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      background: var(--bg2);
+    }
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .input-row textarea {
+      flex: 1;
+      background: var(--bg3);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      resize: none;
+      min-height: 48px;
+      max-height: 150px;
+      line-height: 1.5;
+      transition: border-color 0.2s;
+    }
+    .input-row textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .input-row textarea::placeholder { color: var(--text3); }
+    .send-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .send-btn:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(6,182,212,0.3); }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .input-hint {
+      font-size: 0.65rem;
+      color: var(--text3);
+      margin-top: 6px;
+      text-align: center;
+    }
+
+    /* Welcome */
+    .welcome {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      text-align: center;
+      padding: 2rem;
+    }
+    .welcome-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .welcome h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .welcome p { color: var(--text2); font-size: 0.88rem; max-width: 500px; line-height: 1.7; }
+    .welcome-examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 1.5rem;
+      justify-content: center;
+    }
+    .example-btn {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 16px;
+      color: var(--text2);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      max-width: 250px;
+    }
+    .example-btn:hover {
+      border-color: var(--accent);
+      color: var(--text);
+      background: rgba(6,182,212,0.05);
+    }
+
+    /* Scrollbar */
+    .messages::-webkit-scrollbar { width: 6px; }
+    .messages::-webkit-scrollbar-track { background: transparent; }
+    .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .messages::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h1>🧓 PensionistaAgent</h1>
+    <p>Assistente para Aposentados e Pensionistas</p>
+    <div class="status-badge status-dry" id="statusBadge">
+      <span class="status-dot"></span>
+      <span id="statusText">DRY-RUN</span>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <h3>Roteamento</h3>
+    <div class="select-wrapper">
+      <select id="skillSelect">
+        <option value="">🔄 Auto (Router decide)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="sidebar-section" style="flex:1; overflow-y:auto;">
+    <h3>Skills Carregadas</h3>
+    <div id="skillsList"></div>
+  </div>
+
+  <div class="sidebar-section">
+    <h3>Provider</h3>
+    <div id="providerInfo" style="font-size:0.78rem; color:var(--text2);">
+      Carregando...
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    PensionistaAgent v1.0 — Fase 3<br>
+    Multi-Provider LLM
+  </div>
+</aside>
+
+<!-- CHAT AREA -->
+<main class="chat-area">
+  <div class="chat-header">
+    <h2>💬 Chat</h2>
+    <span class="chip" id="headerChip">Auto-routing</span>
+  </div>
+
+  <div class="messages" id="messages">
+    <div class="welcome" id="welcome">
+      <div class="welcome-icon">🧓</div>
+      <h2>Olá! Como posso ajudar?</h2>
+      <p>Sou um assistente especializado em aposentados e pensionistas. Posso ajudar com perfil demográfico, questões bancárias e usabilidade digital.</p>
+      <div class="welcome-examples">
+        <button class="example-btn" onclick="sendExample(this)">📊 Qual o perfil demográfico dos aposentados no Brasil?</button>
+        <button class="example-btn" onclick="sendExample(this)">🔒 Como proteger idosos de golpes bancários?</button>
+        <button class="example-btn" onclick="sendExample(this)">📱 Como melhorar a interface do WhatsApp para idosos?</button>
+        <button class="example-btn" onclick="sendExample(this)">💳 O que é crédito consignado e quais os riscos?</button>
+      </div>
+    </div>
+
+    <div class="typing" id="typing">
+      <div class="msg-avatar" style="background:rgba(6,182,212,0.2);">🤖</div>
+      <div class="typing-dots">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-row">
+      <textarea id="userInput" placeholder="Digite sua pergunta..." rows="1"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+    </div>
+    <div class="input-hint">Enter para enviar · Shift+Enter para nova linha</div>
+  </div>
+</main>
+
+<script>
+const API = 'http://localhost:8080';
+let skills = {};
+
+// ===== AUTO-RESIZE TEXTAREA =====
+const textarea = document.getElementById('userInput');
+textarea.addEventListener('input', () => {
+  textarea.style.height = 'auto';
+  textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+});
+
+// ===== LOAD SKILLS =====
+async function loadSkills() {
+  try {
+    const res = await fetch(API + '/api/skills');
+    const data = await res.json();
+    skills = data.skills;
+    const isDry = data.dry_run;
+    const provider = data.provider || 'none';
+    const providerLabel = data.provider_label || 'Nenhum';
+    const model = data.model || '';
+
+    // Status badge
+    const badge = document.getElementById('statusBadge');
+    const statusText = document.getElementById('statusText');
+    if (isDry) {
+      badge.className = 'status-badge status-dry';
+      statusText.textContent = 'DRY-RUN';
+    } else {
+      badge.className = 'status-badge status-live';
+      statusText.textContent = 'LIVE';
+    }
+
+    // Provider info
+    const provInfo = document.getElementById('providerInfo');
+    const provIcons = { groq: '⚡', gemini: '💎', anthropic: '🔮', none: '⚪' };
+    const provColors = { groq: '#f97316', gemini: '#4285f4', anthropic: '#d97706', none: 'var(--text3)' };
+    provInfo.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="font-size:1.2rem;">${provIcons[provider] || '⚪'}</span>
+        <span style="font-weight:600;color:${provColors[provider] || 'var(--text2)'}">${providerLabel}</span>
+      </div>
+      ${isDry ? '<div style="font-size:0.7rem;color:var(--amber);margin-top:4px;">Configure uma API key no .env</div>' : `<div style="font-size:0.7rem;color:var(--green);margin-top:4px;">Modelo: ${model}</div>`}
+    `;
+
+    // Skill select
+    const select = document.getElementById('skillSelect');
+    select.innerHTML = '<option value="">🔄 Auto (Router decide)</option>';
+    for (const [name, info] of Object.entries(skills)) {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = '📘 ' + name;
+      select.appendChild(opt);
+    }
+
+    // Skill cards
+    const list = document.getElementById('skillsList');
+    list.innerHTML = '';
+    for (const [name, info] of Object.entries(skills)) {
+      const card = document.createElement('div');
+      card.className = 'skill-card';
+      card.innerHTML = `
+        <div class="skill-name">📘 ${name}</div>
+        <div class="skill-domain">${info.domain}</div>
+        <div class="skill-keywords">${info.keywords.slice(0,6).map(k => '<span class="kw-tag">' + k + '</span>').join('')}</div>
+      `;
+      card.onclick = () => {
+        select.value = name;
+        updateHeaderChip();
+        document.querySelectorAll('.skill-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+      };
+      list.appendChild(card);
+    }
+  } catch (e) {
+    console.error('Erro ao carregar skills:', e);
+  }
+}
+
+function updateHeaderChip() {
+  const sel = document.getElementById('skillSelect');
+  const chip = document.getElementById('headerChip');
+  chip.textContent = sel.value ? 'Skill: ' + sel.value : 'Auto-routing';
+}
+document.getElementById('skillSelect').addEventListener('change', () => {
+  updateHeaderChip();
+  document.querySelectorAll('.skill-card').forEach(c => c.classList.remove('active'));
+});
+
+// ===== SIMPLE MARKDOWN =====
+function renderMarkdown(text) {
+  let html = text
+    // Code blocks
+    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+    // Headers
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    // Bold & italic
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // Inline code
+    .replace(/`(.+?)`/g, '<code>$1</code>')
+    // Blockquotes
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    // Unordered lists
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    // Ordered lists
+    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+    // Paragraphs (lines with content not already wrapped)
+    .replace(/^(?!<[hluobtpc])((?!<).+)$/gm, '<p>$1</p>')
+    // Clean up consecutive li into ul
+    .replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
+    .replace(/<\/ul>\s*<ul>/g, '');
+
+  return html;
+}
+
+// ===== MESSAGES =====
+function addMessage(role, text, meta) {
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.style.display = 'none';
+
+  const container = document.getElementById('messages');
+  const typing = document.getElementById('typing');
+
+  const msg = document.createElement('div');
+  msg.className = 'msg ' + role;
+
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar';
+  avatar.textContent = role === 'user' ? '👤' : '🤖';
+
+  const content = document.createElement('div');
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.innerHTML = role === 'user' ? text.replace(/\n/g, '<br>') : renderMarkdown(text);
+  content.appendChild(bubble);
+
+  if (meta) {
+    const metaEl = document.createElement('div');
+    metaEl.className = 'msg-meta';
+    if (meta.skills_used) {
+      meta.skills_used.forEach(s => {
+        const tag = document.createElement('span');
+        tag.className = 'skill-tag';
+        tag.textContent = s;
+        metaEl.appendChild(tag);
+      });
+    }
+    if (meta.dry_run) {
+      const tag = document.createElement('span');
+      tag.className = 'dry-tag';
+      tag.textContent = 'DRY-RUN';
+      metaEl.appendChild(tag);
+    }
+    if (meta.provider && meta.provider !== 'none') {
+      const ptag = document.createElement('span');
+      ptag.style.cssText = 'font-size:0.62rem;color:var(--text3);';
+      ptag.textContent = 'via ' + meta.provider;
+      metaEl.appendChild(ptag);
+    }
+    content.appendChild(metaEl);
+  }
+
+  msg.appendChild(avatar);
+  msg.appendChild(content);
+  container.insertBefore(msg, typing);
+  container.scrollTop = container.scrollHeight;
+}
+
+// ===== SEND =====
+async function sendMessage() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('sendBtn').disabled = true;
+
+  addMessage('user', text);
+
+  // Show typing
+  const typing = document.getElementById('typing');
+  typing.classList.add('visible');
+  document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+
+  try {
+    const skill = document.getElementById('skillSelect').value || null;
+    const res = await fetch(API + '/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: text, skill: skill })
+    });
+    const data = await res.json();
+    typing.classList.remove('visible');
+    addMessage('assistant', data.answer, { skills_used: data.skills_used, dry_run: data.dry_run, provider: data.provider });
+  } catch (e) {
+    typing.classList.remove('visible');
+    addMessage('assistant', '❌ Erro de conexão com o servidor. Verifique se `python server.py` está rodando na porta 8080.', {});
+  }
+
+  document.getElementById('sendBtn').disabled = false;
+  input.focus();
+}
+
+function sendExample(btn) {
+  const text = btn.textContent.replace(/^[^\s]+\s/, '');
+  document.getElementById('userInput').value = text;
+  sendMessage();
+}
+
+// ===== INIT =====
+loadSkills();
+</script>
+</body>
+</html>
