@@ -31,12 +31,26 @@ class AgentHandler(SimpleHTTPRequestHandler):
             self._send_json(self._get_skills_info())
             return
 
-        # Fallback: serve arquivos estáticos (index.html, etc.)
+        # Serve index.html diretamente com headers anti-cache
+        if path == "/" or path == "/index.html":
+            html_path = STATIC_DIR / "index.html"
+            body = html_path.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
+        # Fallback: serve outros arquivos estáticos
         super().do_GET()
 
     def end_headers(self):
         # Evita cache de HTML para garantir versão atualizada
-        if hasattr(self, 'path') and (self.path == '/' or self.path.endswith('.html')):
+        if hasattr(self, 'path') and self.path.endswith('.html'):
             self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
             self.send_header('Pragma', 'no-cache')
             self.send_header('Expires', '0')
