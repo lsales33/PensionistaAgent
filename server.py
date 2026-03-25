@@ -34,6 +34,14 @@ class AgentHandler(SimpleHTTPRequestHandler):
         # Fallback: serve arquivos estáticos (index.html, etc.)
         super().do_GET()
 
+    def end_headers(self):
+        # Evita cache de HTML para garantir versão atualizada
+        if hasattr(self, 'path') and (self.path == '/' or self.path.endswith('.html')):
+            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            self.send_header('Pragma', 'no-cache')
+            self.send_header('Expires', '0')
+        super().end_headers()
+
     def do_POST(self):
         path = urlparse(self.path).path
         content_len = int(self.headers.get("Content-Length", 0))

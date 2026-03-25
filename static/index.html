@@ -734,7 +734,8 @@ async function sendMessage() {
     addMessage('assistant', data.answer, { skills_used: data.skills_used, dry_run: data.dry_run, provider: data.provider });
   } catch (e) {
     typing.classList.remove('visible');
-    addMessage('assistant', '❌ Erro de conexão com o servidor. Verifique se `python server.py` está rodando na porta 8080.', {});
+    console.error('Chat error:', e);
+    addMessage('assistant', '❌ Erro de conexão. Tente novamente em alguns segundos. Se persistir, atualize a página (puxe para baixo no celular).', {});
   }
 
   document.getElementById('sendBtn').disabled = false;
