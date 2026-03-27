@@ -2,7 +2,9 @@
 
 import json
 import os
+import sqlite3
 import sys
+from datetime import datetime, timezone
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
@@ -16,6 +18,60 @@ from agent.core import PensionistaAgent
 agent = PensionistaAgent(data_dir=str(PROJECT_DIR / "data"))
 
 STATIC_DIR = PROJECT_DIR / "static"
+DB_PATH = PROJECT_DIR / "history.db"
+
+
+def _init_db():
+    """Cria tabela de histórico se não existir."""
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS history ("
+        "  id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "  ts TEXT NOT NULL,"
+        "  channel TEXT NOT NULL DEFAULT 'web',"
+        "  query TEXT NOT NULL,"
+        "  answer TEXT NOT NULL,"
+        "  skills TEXT,"
+        "  provider TEXT,"
+        "  dry_run INTEGER DEFAULT 0"
+        ")"
+    )
+    conn.commit()
+    conn.close()
+
+
+def _save_history(query: str, answer: str, skills: list, provider: str, dry_run: bool, channel: str = "web"):
+    """Salva uma interação no histórico."""
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.execute(
+        "INSERT INTO history (ts, channel, query, answer, skills, provider, dry_run) VALUES (?,?,?,?,?,?,?)",
+        (
+            datetime.now(timezone.utc).isoformat(),
+            channel,
+            query,
+            answer,
+            ",".join(skills),
+            provider or "none",
+            1 if dry_run else 0,
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+
+def _get_history(limit: int = 50) -> list[dict]:
+    """Retorna últimas interações."""
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute(
+        "SELECT id, ts, channel, query, answer, skills, provider, dry_run FROM history ORDER BY id DESC LIMIT ?",
+        (limit,),
+    ).fetchall()
+    conn.close()
+    return [{k: row[k] for k in row.keys()} for row in rows]
+
+
+_init_db()
 
 
 class AgentHandler(SimpleHTTPRequestHandler):
@@ -29,6 +85,12 @@ class AgentHandler(SimpleHTTPRequestHandler):
 
         if path == "/api/skills":
             self._send_json(self._get_skills_info())
+            return
+
+        if path == "/api/history":
+            qs = parse_qs(urlparse(self.path).query)
+            limit = min(int(qs.get("limit", [50])[0]), 200)
+            self._send_json({"history": _get_history(limit)})
             return
 
         # Serve index.html diretamente com headers anti-cache
@@ -75,6 +137,7 @@ class AgentHandler(SimpleHTTPRequestHandler):
 
             skill = data.get("skill") or None
             result = agent.generate_response(user_query=query, skill_name=skill)
+            _save_history(query, result["answer"], result["skills_used"], result.get("provider"), result.get("dry_run", False), "web")
             self._send_json(result)
             return
 
@@ -123,6 +186,7 @@ class AgentHandler(SimpleHTTPRequestHandler):
         # Gera resposta real
         print(f"[WhatsApp] {from_number}: {incoming_msg[:80]}")
         result = agent.generate_response(user_query=incoming_msg)
+        _save_history(incoming_msg, result["answer"], result["skills_used"], result.get("provider"), result.get("dry_run", False), "whatsapp")
         answer = result["answer"]
 
         # Twilio limita mensagem a ~1600 chars

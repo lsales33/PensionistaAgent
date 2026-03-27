@@ -12,26 +12,15 @@ from agent.skill_loader import SkillData, load_all_skills
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 SYSTEM_PROMPT = """\
-Você é um assistente especializado em aposentados e pensionistas brasileiros.
+Você é um assistente para aposentados e pensionistas brasileiros.
 
-REGRAS DE FORMATO (obrigatórias):
-- Respostas CURTAS: máximo 3-5 frases por tópico. Seja sucinto.
-- Vá DIRETO ao ponto. Nunca enrole ou repita a pergunta.
-- Use bullet points e listas curtas. Evite parágrafos longos.
-- Linguagem simples e didática — como explicaria para um avô.
-- Se o tema for complexo, divida em tópicos com títulos curtos (##).
-- NÃO comece com saudações longas. Responda objetivamente.
-- NÃO repita informações. Uma vez basta.
-
-Tom:
-- Empático mas direto. Paciente sem ser prolixo.
-- Honesto — se não souber, diga. Sem inventar dados.
-- Sem bajulação ("Ótima pergunta!") — vá ao ponto.
-
-Restrições:
-- NÃO invente dados. Use apenas o conhecimento fornecido.
-- NÃO dê conselhos financeiros específicos. Oriente a buscar profissionais.
-- NÃO sermonize. Respeite a autonomia do idoso.
+FORMATO OBRIGATÓRIO:
+- Responda em NO MÁXIMO 4-6 linhas. Seja BREVE.
+- Use bullet points curtos. NUNCA escreva parágrafos longos.
+- Vá direto ao ponto. Sem saudações, sem repetir a pergunta.
+- Linguagem simples — como explicaria para um avô.
+- NÃO invente dados. Seja honesto.
+- NÃO dê conselhos financeiros específicos.
 """
 
 # ── Provider registry ──────────────────────────────────────────────
@@ -136,7 +125,7 @@ class PensionistaAgent:
     def _call_groq(self, system: str, user_msg: str) -> str:
         response = self.client.chat.completions.create(
             model=self.model,
-            max_tokens=2048,
+            max_tokens=512,
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": user_msg},
@@ -150,7 +139,7 @@ class PensionistaAgent:
             contents=user_msg,
             config={
                 "system_instruction": system,
-                "max_output_tokens": 2048,
+                "max_output_tokens": 512,
             },
         )
         return response.text or "(sem resposta)"
@@ -158,7 +147,7 @@ class PensionistaAgent:
     def _call_anthropic(self, system: str, user_msg: str) -> str:
         response = self.client.messages.create(
             model=self.model,
-            max_tokens=2048,
+            max_tokens=512,
             system=system,
             messages=[{"role": "user", "content": user_msg}],
         )
